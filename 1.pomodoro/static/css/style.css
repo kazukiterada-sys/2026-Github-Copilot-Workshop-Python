@@ -1,0 +1,137 @@
+/* Pomodoro Timer - Basic Design (Stage 2) */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #1a1a2e;
+  color: #eaeaea;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  text-align: center;
+  padding: 40px 32px;
+  background: #16213e;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 360px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  color: #e94560;
+  margin-bottom: 24px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Session Label */
+#session-label {
+  font-size: 1rem;
+  color: #a0a0b0;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+/* Timer Display */
+#time-display {
+  font-size: 5rem;
+  font-weight: 700;
+  color: #eaeaea;
+  letter-spacing: 4px;
+  margin-bottom: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Progress Bar */
+.progress-container {
+  background: #0f3460;
+  border-radius: 8px;
+  height: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+#progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #e94560, #f5a623);
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+
+/* Pomodoro Cycle Dots */
+.cycle-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.cycle-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0f3460;
+  border: 2px solid #e94560;
+  transition: background 0.3s ease;
+}
+
+.cycle-dot.completed {
+  background: #e94560;
+}
+
+.cycle-dot.current {
+  background: #f5a623;
+  border-color: #f5a623;
+  box-shadow: 0 0 8px #f5a623;
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+button {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+#start-pause-btn {
+  background: #e94560;
+  color: #fff;
+  min-width: 120px;
+}
+
+#start-pause-btn:hover {
+  background: #c73652;
+}
+
+#reset-btn {
+  background: #0f3460;
+  color: #eaeaea;
+  border: 2px solid #e94560;
+}
+
+#reset-btn:hover {
+  background: #1a4a8a;
+}

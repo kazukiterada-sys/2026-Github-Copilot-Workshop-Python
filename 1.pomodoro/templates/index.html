@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポモドーロタイマー</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1>🍅 ポモドーロ</h1>
+    <p id="session-label">集中タイム</p>
+    <div id="time-display">25:00</div>
+    <div class="progress-container">
+      <div id="progress-bar"></div>
+    </div>
+    <div class="cycle-container">
+      <div class="cycle-dot" title="サイクル 1"></div>
+      <div class="cycle-dot" title="サイクル 2"></div>
+      <div class="cycle-dot" title="サイクル 3"></div>
+      <div class="cycle-dot" title="サイクル 4"></div>
+    </div>
+    <div class="button-group">
+      <button id="start-pause-btn">スタート</button>
+      <button id="reset-btn">リセット</button>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+</body>
+</html>
