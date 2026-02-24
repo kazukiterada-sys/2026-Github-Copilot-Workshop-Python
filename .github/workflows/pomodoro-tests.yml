@@ -1,0 +1,40 @@
+name: Pomodoro Timer Tests
+
+on:
+  push:
+    paths:
+      - '1.pomodoro/**'
+  pull_request:
+    paths:
+      - '1.pomodoro/**'
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: 1.pomodoro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pytest test_app.py test_timer.py -v
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: 1.pomodoro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test -- --watchAll=false
