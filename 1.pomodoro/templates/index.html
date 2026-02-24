@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🍅 Pomodoro Timer</h1>
+        <div id="status-label" class="status-label">Work Session</div>
+        <div id="timer-display" class="timer-display">25:00</div>
+        <div id="cycle-count" class="cycle-info">Cycles completed: 0</div>
+        <div class="controls">
+            <button id="btn-start" onclick="startTimer()">Start</button>
+            <button id="btn-stop" onclick="stopTimer()">Stop</button>
+            <button id="btn-reset" onclick="resetTimer()">Reset</button>
+        </div>
+    </div>
+    <script src="/static/js/timer.js"></script>
+    <script>
+        let pollInterval = null;
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+
+        function updateUI(data) {
+            document.getElementById('timer-display').textContent = formatTime(data.time_remaining);
+            document.getElementById('status-label').textContent = data.is_break ? 'Break Time! ☕' : 'Work Session 💪';
+            document.getElementById('cycle-count').textContent = 'Cycles completed: ' + data.cycle_count;
+        }
+
+        function fetchStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => updateUI(data));
+        }
+
+        function startTimer() {
+            fetch('/api/start', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    updateUI(data);
+                    if (!pollInterval) {
+                        pollInterval = setInterval(fetchStatus, 1000);
+                    }
+                });
+        }
+
+        function stopTimer() {
+            fetch('/api/stop', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    updateUI(data);
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                });
+        }
+
+        function resetTimer() {
+            fetch('/api/reset', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    updateUI(data);
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                });
+        }
+
+        // Initial status fetch
+        fetchStatus();
+    </script>
+</body>
+</html>
