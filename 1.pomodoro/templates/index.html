@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポモドーロタイマー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #f0f0f0;
+      transition: background 0.5s;
+    }
+    body.work  { background: #ffe5e5; }
+    body.break { background: #e5f5e5; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 60px;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      min-width: 320px;
+    }
+
+    .mode-label {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .timer-display {
+      font-size: 5rem;
+      font-weight: 700;
+      color: #333;
+      letter-spacing: 0.05em;
+      margin: 16px 0 32px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    button {
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    button:hover  { opacity: 0.85; }
+    button:active { transform: scale(0.97); }
+
+    #btn-start { background: #e53935; color: white; }
+    #btn-stop  { background: #fb8c00; color: white; }
+    #btn-reset { background: #546e7a; color: white; }
+
+    #status-msg {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #aaa;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mode-label" id="mode-label">作業中</div>
+    <div class="timer-display" id="timer">25:00</div>
+    <div class="controls">
+      <button id="btn-start" onclick="timerStart()">開始</button>
+      <button id="btn-stop"  onclick="timerStop()">停止</button>
+      <button id="btn-reset" onclick="timerReset()">リセット</button>
+    </div>
+    <div id="status-msg"></div>
+  </div>
+
+  <script>
+    const MODE_LABELS = { work: '作業中', break: '休憩中' };
+    let pollInterval = null;
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function applyState(data) {
+      document.getElementById('timer').textContent = formatTime(data.remaining);
+      document.getElementById('mode-label').textContent = MODE_LABELS[data.mode] || data.mode;
+      document.body.className = data.mode;
+
+      if (data.running && !pollInterval) {
+        pollInterval = setInterval(fetchStatus, 1000);
+      } else if (!data.running && pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    function setMessage(msg) {
+      document.getElementById('status-msg').textContent = msg;
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        applyState(data);
+      } catch (e) {
+        setMessage('通信エラー');
+      }
+    }
+
+    async function timerStart() {
+      try {
+        const res = await fetch('/api/start', { method: 'POST' });
+        const data = await res.json();
+        applyState(data);
+        setMessage(data.message === 'started' ? 'タイマーを開始しました' : 'すでに実行中です');
+      } catch (e) {
+        setMessage('通信エラー');
+      }
+    }
+
+    async function timerStop() {
+      try {
+        const res = await fetch('/api/stop', { method: 'POST' });
+        const data = await res.json();
+        applyState(data);
+        setMessage('タイマーを停止しました');
+      } catch (e) {
+        setMessage('通信エラー');
+      }
+    }
+
+    async function timerReset() {
+      try {
+        const res = await fetch('/api/reset', { method: 'POST' });
+        const data = await res.json();
+        applyState(data);
+        setMessage('タイマーをリセットしました');
+      } catch (e) {
+        setMessage('通信エラー');
+      }
+    }
+
+    // 初期状態を取得
+    fetchStatus();
+  </script>
+</body>
+</html>
