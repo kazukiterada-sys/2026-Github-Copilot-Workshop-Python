@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定 | ポモドーロタイマー</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header class="topbar">
+            <h1>設定</h1>
+            <div class="topbar-actions">
+                <a href="{{ url_for('index') }}">タイマーへ戻る</a>
+                <form method="post" action="{{ url_for('logout') }}">
+                    <button type="submit">ログアウト</button>
+                </form>
+            </div>
+        </header>
+
+        <p>ユーザー: {{ username }}</p>
+        <form method="post" class="form-stack">
+            <label for="work_minutes">作業時間（分）</label>
+            <input id="work_minutes" name="work_minutes" type="number" min="1" value="{{ settings.work_minutes }}" required>
+
+            <label for="short_break_minutes">短休憩（分）</label>
+            <input id="short_break_minutes" name="short_break_minutes" type="number" min="1" value="{{ settings.short_break_minutes }}" required>
+
+            <label for="long_break_minutes">長休憩（分）</label>
+            <input id="long_break_minutes" name="long_break_minutes" type="number" min="1" value="{{ settings.long_break_minutes }}" required>
+
+            <label for="cycles">長休憩までのサイクル数</label>
+            <input id="cycles" name="cycles" type="number" min="1" value="{{ settings.cycles }}" required>
+
+            <button type="submit">保存</button>
+        </form>
+        <p>累計完了ポモドーロ: {{ settings.completed_pomodoros }}</p>
+    </main>
+</body>
+</html>
