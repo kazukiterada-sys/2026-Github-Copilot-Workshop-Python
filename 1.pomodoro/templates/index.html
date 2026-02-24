@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}タイマー - ポモドーロタイマー{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* タイマーページ専用スタイル */
+    .timer-card {
+        text-align: center;
+        padding: 40px 30px;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+
+    .session-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #c0392b;
+        margin-bottom: 10px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .timer-display {
+        font-size: 5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        letter-spacing: 0.05em;
+        margin: 20px 0;
+        font-variant-numeric: tabular-nums;
+        font-family: 'Courier New', monospace;
+    }
+
+    .session-progress {
+        color: #888;
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+    }
+
+    .timer-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .btn-large {
+        padding: 14px 32px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        min-width: 120px;
+    }
+
+    .btn-complete {
+        background-color: #27ae60;
+        color: white;
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .settings-summary {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        font-size: 0.85rem;
+        color: #888;
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .settings-summary span {
+        background: #f8f8f8;
+        border-radius: 20px;
+        padding: 4px 12px;
+    }
+
+    /* 状態別の色変化 */
+    body.state-work    { background-color: #fdf5f5; }
+    body.state-break   { background-color: #f0f8f0; }
+    body.state-longbreak { background-color: #f0f5ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card timer-card">
+    <!-- セッション種別ラベル -->
+    <div class="session-label" id="session-label">🍅 作業時間</div>
+
+    <!-- タイマー表示 -->
+    <div class="timer-display" id="timer-display">25:00</div>
+
+    <!-- セッション進捗 -->
+    <div class="session-progress" id="session-progress">
+        セッション 1 / {{ user.sessions_before_long_break }}
+    </div>
+
+    <!-- タイマー操作ボタン -->
+    <div class="timer-buttons">
+        <button class="btn btn-primary btn-large" id="btn-start-pause" onclick="toggleStartPause()">▶ スタート</button>
+        <button class="btn btn-secondary btn-large" id="btn-reset" onclick="resetTimer()">↺ リセット</button>
+    </div>
+
+    <!-- 完了ボタン -->
+    <button class="btn btn-complete btn-large" id="btn-complete" onclick="completeSession()" disabled>
+        ✓ 完了
+    </button>
+
+    <!-- 現在の設定サマリー -->
+    <div class="settings-summary">
+        <span>🍅 作業 {{ user.work_duration }}分</span>
+        <span>☕ 短休憩 {{ user.short_break }}分</span>
+        <span>🛋 長休憩 {{ user.long_break }}分</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // ============================================================
+    // ユーザー設定をFlaskテンプレートからJavaScriptへ渡す
+    // ============================================================
+    const SETTINGS = {
+        workDuration:           {{ user.work_duration }},           // 作業時間（分）
+        shortBreak:             {{ user.short_break }},             // 短い休憩（分）
+        longBreak:              {{ user.long_break }},              // 長い休憩（分）
+        sessionsBeforeLongBreak: {{ user.sessions_before_long_break }}  // 長休憩までのセッション数
+    };
+
+    // ============================================================
+    // タイマー状態管理
+    // ============================================================
+    const STATE = {
+        WORK:       'work',
+        SHORT_BREAK: 'break',
+        LONG_BREAK:  'longbreak'
+    };
+
+    let currentState    = STATE.WORK;   // 現在の状態
+    let completedWork   = 0;            // 完了した作業セッション数
+    let timeRemaining   = SETTINGS.workDuration * 60;  // 残り秒数
+    let isRunning       = false;        // タイマーが動いているか
+    let intervalId      = null;         // setIntervalのID
+    let sessionStarted  = false;        // セッションを開始済みか（完了ボタン有効化用）
+
+    // ============================================================
+    // DOM要素の参照
+    // ============================================================
+    const timerDisplay    = document.getElementById('timer-display');
+    const sessionLabel    = document.getElementById('session-label');
+    const sessionProgress = document.getElementById('session-progress');
+    const btnStartPause   = document.getElementById('btn-start-pause');
+    const btnComplete     = document.getElementById('btn-complete');
+
+    // ============================================================
+    // 時間のフォーマット（秒 → MM:SS）
+    // ============================================================
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    // ============================================================
+    // 表示の更新
+    // ============================================================
+    function updateDisplay() {
+        timerDisplay.textContent = formatTime(timeRemaining);
+
+        // セッションラベルの更新
+        if (currentState === STATE.WORK) {
+            sessionLabel.textContent = '🍅 作業時間';
+            document.body.className = 'state-work';
+        } else if (currentState === STATE.SHORT_BREAK) {
+            sessionLabel.textContent = '☕ 短い休憩';
+            document.body.className = 'state-break';
+        } else {
+            sessionLabel.textContent = '🛋 長い休憩';
+            document.body.className = 'state-longbreak';
+        }
+
+        // 進捗表示の更新
+        const workNum = (completedWork % SETTINGS.sessionsBeforeLongBreak) + 1;
+        if (currentState === STATE.WORK) {
+            sessionProgress.textContent =
+                `セッション ${workNum} / ${SETTINGS.sessionsBeforeLongBreak}`;
+        } else {
+            sessionProgress.textContent =
+                `休憩中（完了済み作業: ${completedWork} セッション）`;
+        }
+
+        // 完了ボタンの有効化
+        btnComplete.disabled = !sessionStarted;
+    }
+
+    // ============================================================
+    // スタート / ポーズの切り替え
+    // ============================================================
+    function toggleStartPause() {
+        if (isRunning) {
+            // タイマーを一時停止
+            clearInterval(intervalId);
+            isRunning = false;
+            btnStartPause.textContent = '▶ 再開';
+        } else {
+            // タイマーをスタート
+            sessionStarted = true;
+            isRunning = true;
+            btnStartPause.textContent = '⏸ 一時停止';
+            intervalId = setInterval(tick, 1000);
+        }
+        updateDisplay();
+    }
+
+    // ============================================================
+    // タイマーのティック（1秒ごとに呼ばれる）
+    // ============================================================
+    function tick() {
+        timeRemaining--;
+        updateDisplay();
+
+        if (timeRemaining <= 0) {
+            // タイマー終了：自動で次のフェーズへ
+            clearInterval(intervalId);
+            isRunning = false;
+            autoComplete();
+        }
+    }
+
+    // ============================================================
+    // タイムアップ時の自動処理
+    // ============================================================
+    function autoComplete() {
+        // セッションをAPIに記録
+        const duration = getDurationForState(currentState);
+        recordSession(currentState === STATE.WORK ? 'work' : 'break', duration);
+
+        // 完了したフェーズのメッセージを取得（遷移前）
+        const msg = getCompletionMessage(currentState);
+
+        // 次のフェーズへ自動遷移
+        advanceToNextPhase();
+        btnStartPause.textContent = '▶ スタート';
+        isRunning = false;
+        sessionStarted = false;
+        updateDisplay();
+        alert(msg);
+    }
+
+    // ============================================================
+    // 手動完了ボタンの処理
+    // ============================================================
+    function completeSession() {
+        if (!sessionStarted) return;
+
+        clearInterval(intervalId);
+        isRunning = false;
+
+        // セッションをAPIに記録
+        const duration = getDurationForState(currentState);
+        recordSession(currentState === STATE.WORK ? 'work' : 'break', duration);
+
+        // 次のフェーズへ
+        advanceToNextPhase();
+        btnStartPause.textContent = '▶ スタート';
+        sessionStarted = false;
+        updateDisplay();
+    }
+
+    // ============================================================
+    // 次のフェーズへ移行
+    // ============================================================
+    function advanceToNextPhase() {
+        if (currentState === STATE.WORK) {
+            completedWork++;
+            // 一定回数作業したら長い休憩
+            if (completedWork % SETTINGS.sessionsBeforeLongBreak === 0) {
+                currentState = STATE.LONG_BREAK;
+                timeRemaining = SETTINGS.longBreak * 60;
+            } else {
+                currentState = STATE.SHORT_BREAK;
+                timeRemaining = SETTINGS.shortBreak * 60;
+            }
+        } else {
+            // 休憩終了 → 作業へ
+            currentState = STATE.WORK;
+            timeRemaining = SETTINGS.workDuration * 60;
+        }
+    }
+
+    // ============================================================
+    // リセット
+    // ============================================================
+    function resetTimer() {
+        clearInterval(intervalId);
+        isRunning = false;
+        sessionStarted = false;
+        currentState = STATE.WORK;
+        completedWork = 0;
+        timeRemaining = SETTINGS.workDuration * 60;
+        btnStartPause.textContent = '▶ スタート';
+        updateDisplay();
+    }
+
+    // ============================================================
+    // 状態に対応する設定時間（分）を返す
+    // ============================================================
+    function getDurationForState(state) {
+        if (state === STATE.WORK)        return SETTINGS.workDuration;
+        if (state === STATE.SHORT_BREAK) return SETTINGS.shortBreak;
+        return SETTINGS.longBreak;
+    }
+
+    // ============================================================
+    // 完了メッセージ
+    // ============================================================
+    function getCompletionMessage(state) {
+        if (state === STATE.WORK) {
+            return '作業セッションが完了しました！次は休憩です。';
+        } else if (state === STATE.SHORT_BREAK) {
+            return '短い休憩が終わりました！次の作業に取りかかりましょう。';
+        } else {
+            return '長い休憩が終わりました！リフレッシュできましたか？';
+        }
+    }
+
+    // ============================================================
+    // APIへセッションを記録する
+    // ============================================================
+    function recordSession(sessionType, durationMinutes) {
+        fetch('/api/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_type:     sessionType,
+                duration_minutes: durationMinutes
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log('セッション記録完了:', data);
+        })
+        .catch(err => {
+            console.error('セッション記録エラー:', err);
+        });
+    }
+
+    // ============================================================
+    // 初期表示
+    // ============================================================
+    updateDisplay();
+</script>
+{% endblock %}

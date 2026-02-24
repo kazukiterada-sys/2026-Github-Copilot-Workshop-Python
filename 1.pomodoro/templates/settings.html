@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}設定 - ポモドーロタイマー{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 0 auto;">
+    <h2>⚙ タイマー設定</h2>
+    <p style="color: #666; margin-bottom: 20px; font-size: 0.9rem;">各時間の長さをカスタマイズできます。</p>
+
+    <form method="POST" action="{{ url_for('settings') }}">
+        <div class="form-group">
+            <label for="work_duration">🍅 作業時間（分）</label>
+            <input type="number" id="work_duration" name="work_duration"
+                   value="{{ user.work_duration }}" min="1" max="120" required>
+        </div>
+        <div class="form-group">
+            <label for="short_break">☕ 短い休憩（分）</label>
+            <input type="number" id="short_break" name="short_break"
+                   value="{{ user.short_break }}" min="1" max="60" required>
+        </div>
+        <div class="form-group">
+            <label for="long_break">🛋 長い休憩（分）</label>
+            <input type="number" id="long_break" name="long_break"
+                   value="{{ user.long_break }}" min="1" max="60" required>
+        </div>
+        <div class="form-group">
+            <label for="sessions_before_long_break">🔁 長い休憩までの作業回数</label>
+            <input type="number" id="sessions_before_long_break" name="sessions_before_long_break"
+                   value="{{ user.sessions_before_long_break }}" min="1" max="10" required>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <button type="submit" class="btn btn-primary">💾 保存する</button>
+            <a href="{{ url_for('timer') }}" class="btn btn-secondary">キャンセル</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

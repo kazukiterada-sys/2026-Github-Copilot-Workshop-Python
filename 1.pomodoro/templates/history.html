@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}履歴 - ポモドーロタイマー{% endblock %}
+
+{% block content %}
+<h2>📊 セッション履歴</h2>
+
+<!-- 統計カード -->
+<div style="display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+    <div class="card" style="flex: 1; min-width: 140px; text-align: center; padding: 20px;">
+        <div style="font-size: 2rem; font-weight: bold; color: #c0392b;">{{ total_work_sessions }}</div>
+        <div style="color: #666; font-size: 0.9rem; margin-top: 4px;">🍅 完了した作業</div>
+    </div>
+    <div class="card" style="flex: 1; min-width: 140px; text-align: center; padding: 20px;">
+        <div style="font-size: 2rem; font-weight: bold; color: #27ae60;">{{ total_work_minutes }}</div>
+        <div style="color: #666; font-size: 0.9rem; margin-top: 4px;">⏱ 合計作業時間（分）</div>
+    </div>
+    <div class="card" style="flex: 1; min-width: 140px; text-align: center; padding: 20px;">
+        <div style="font-size: 2rem; font-weight: bold; color: #2980b9;">{{ total_sessions }}</div>
+        <div style="color: #666; font-size: 0.9rem; margin-top: 4px;">📋 合計セッション数</div>
+    </div>
+</div>
+
+<!-- セッション一覧 -->
+<div class="card">
+    <h3 style="margin-bottom: 16px;">最近のセッション（最大50件）</h3>
+    {% if sessions %}
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+        <thead>
+            <tr style="background-color: #f8f8f8; border-bottom: 2px solid #eee;">
+                <th style="padding: 10px; text-align: left;">種類</th>
+                <th style="padding: 10px; text-align: left;">時間（分）</th>
+                <th style="padding: 10px; text-align: left;">完了日時</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">
+                    {% if session.session_type == 'work' %}
+                        🍅 作業
+                    {% else %}
+                        ☕ 休憩
+                    {% endif %}
+                </td>
+                <td style="padding: 10px;">{{ session.duration_minutes }} 分</td>
+                <td style="padding: 10px; color: #666;">
+                    {{ session.completed_at.strftime('%Y/%m/%d %H:%M') }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #888; text-align: center; padding: 30px 0;">
+        まだセッションの記録がありません。<br>
+        タイマーを使ってポモドーロを完了させましょう！
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
