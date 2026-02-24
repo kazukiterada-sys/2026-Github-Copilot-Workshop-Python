@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポモドーロタイマー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #0f0f1a;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      transition: background 1s ease;
+    }
+
+    /* ─── Background canvas (particles + ripples) ─── */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Main card ─── */
+    .card {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 40px 48px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      color: #fff;
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+    }
+
+    /* ─── Mode tabs ─── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .tab {
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.3s, color 0.3s;
+    }
+    .tab.active, .tab:hover {
+      background: rgba(255,255,255,0.28);
+      color: #fff;
+    }
+
+    /* ─── Circular progress ─── */
+    .ring-wrap {
+      position: relative;
+      width: 240px;
+      height: 240px;
+    }
+    #ring-canvas {
+      width: 240px;
+      height: 240px;
+    }
+    .time-display {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #time-label {
+      font-size: 3.2rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 20px currentColor;
+    }
+    #session-label {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.5);
+      margin-top: 4px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Controls ─── */
+    .controls {
+      display: flex;
+      gap: 16px;
+    }
+    .btn {
+      padding: 10px 32px;
+      border: none;
+      border-radius: 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+    #btn-start {
+      background: linear-gradient(135deg, #4f8ef7, #9b59f7);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(79,142,247,0.45);
+    }
+    #btn-reset {
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* ─── Session counter ─── */
+    .sessions {
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      transition: background 0.4s;
+    }
+    .dot.done {
+      background: #f7c948;
+      box-shadow: 0 0 8px #f7c948;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="card">
+  <h1>🍅 ポモドーロタイマー</h1>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="pomodoro">集中</button>
+    <button class="tab" data-mode="shortBreak">短い休憩</button>
+    <button class="tab" data-mode="longBreak">長い休憩</button>
+  </div>
+
+  <div class="ring-wrap">
+    <canvas id="ring-canvas" width="480" height="480"></canvas>
+    <div class="time-display">
+      <span id="time-label">25:00</span>
+      <span id="session-label">集中セッション</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="btn-start">開始</button>
+    <button class="btn" id="btn-reset">リセット</button>
+  </div>
+
+  <div class="sessions" id="sessions">
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   1. Timer state
+══════════════════════════════════════════════════════ */
+const DURATIONS = { pomodoro: 25*60, shortBreak: 5*60, longBreak: 15*60 };
+const MODE_LABELS = {
+  pomodoro: '集中セッション',
+  shortBreak: '短い休憩',
+  longBreak: '長い休憩',
+};
+
+let mode = 'pomodoro';
+let totalSeconds = DURATIONS[mode];
+let remaining = totalSeconds;
+let running = false;
+let intervalId = null;
+let completedSessions = 0;
+
+/* ════════════════════════════════════════════════════
+   2. DOM references
+══════════════════════════════════════════════════════ */
+const timeLabel    = document.getElementById('time-label');
+const sessionLabel = document.getElementById('session-label');
+const btnStart     = document.getElementById('btn-start');
+const btnReset     = document.getElementById('btn-reset');
+const ringCanvas   = document.getElementById('ring-canvas');
+const ringCtx      = ringCanvas.getContext('2d');
+const bgCanvas     = document.getElementById('bg-canvas');
+const bgCtx        = bgCanvas.getContext('2d');
+const sessionDots  = document.querySelectorAll('.dot');
+const tabs         = document.querySelectorAll('.tab');
+
+/* ════════════════════════════════════════════════════
+   3. Colour helper  (blue → yellow → red)
+══════════════════════════════════════════════════════ */
+function progressColor(ratio) {
+  // ratio: 1 = start (blue), 0 = end (red)
+  if (ratio > 0.5) {
+    const t = (ratio - 0.5) / 0.5;          // 1→0 as ratio goes 1→0.5
+    return lerpColor('#f7c948', '#4f8ef7', t); // yellow→blue
+  } else {
+    const t = ratio / 0.5;                   // 1→0 as ratio goes 0.5→0
+    return lerpColor('#f74f4f', '#f7c948', t); // red→yellow
+  }
+}
+
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+  const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const b_ = Math.round(ab + (bb - ab) * t);
+  return `rgb(${r},${g},${b_})`;
+}
+
+/* ════════════════════════════════════════════════════
+   4. Circular progress ring
+══════════════════════════════════════════════════════ */
+function drawRing() {
+  const ratio = remaining / totalSeconds;
+  const color = progressColor(ratio);
+  const cx = 240, cy = 240, r = 210, lw = 18;
+  const startAngle = -Math.PI / 2;
+  const endAngle   = startAngle + 2 * Math.PI * (1 - ratio);
+
+  ringCtx.clearRect(0, 0, 480, 480);
+
+  // Track (background ring)
+  ringCtx.beginPath();
+  ringCtx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ringCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ringCtx.lineWidth = lw;
+  ringCtx.stroke();
+
+  // Progress arc
+  if (ratio > 0) {
+    ringCtx.beginPath();
+    ringCtx.arc(cx, cy, r, startAngle, startAngle + 2 * Math.PI * ratio);
+    ringCtx.strokeStyle = color;
+    ringCtx.lineWidth = lw;
+    ringCtx.lineCap = 'round';
+    // Glow
+    ringCtx.shadowBlur = 22;
+    ringCtx.shadowColor = color;
+    ringCtx.stroke();
+    ringCtx.shadowBlur = 0;
+  }
+
+  // Update time label color to match ring
+  timeLabel.style.color = color;
+  timeLabel.style.textShadow = `0 0 30px ${color}`;
+
+  // Update page background tint
+  const bgRatio = 1 - ratio;
+  document.body.style.background =
+    `radial-gradient(ellipse at center, ${lerpColor('#1a1a3a', '#2a1a1a', bgRatio)} 0%, #0f0f1a 70%)`;
+}
+
+/* ════════════════════════════════════════════════════
+   5. Background effects (particles + ripples)
+══════════════════════════════════════════════════════ */
+bgCanvas.width  = window.innerWidth;
+bgCanvas.height = window.innerHeight;
+window.addEventListener('resize', () => {
+  bgCanvas.width  = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+});
+
+// Particles
+const PARTICLE_COUNT = 60;
+const particles = Array.from({ length: PARTICLE_COUNT }, () => createParticle(true));
+
+function createParticle(randomY = false) {
+  return {
+    x: Math.random() * window.innerWidth,
+    y: randomY ? Math.random() * window.innerHeight : window.innerHeight + 10,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: -(Math.random() * 0.6 + 0.2),
+    r: Math.random() * 2 + 0.5,
+    alpha: Math.random() * 0.5 + 0.1,
+  };
+}
+
+// Ripples
+const ripples = [];
+function addRipple() {
+  ripples.push({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: 0,
+    maxR: Math.random() * 100 + 60,
+    alpha: 0.3,
+  });
+}
+setInterval(addRipple, 1800);
+
+function drawBg() {
+  bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+  if (!running && mode !== 'pomodoro') {
+    requestAnimationFrame(drawBg);
+    return; // Only animate during focus/running
+  }
+
+  // Colour tint based on remaining ratio
+  const ratio = remaining / totalSeconds;
+  const pColor = progressColor(ratio);
+
+  // Particles
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.y < -10) Object.assign(p, createParticle());
+
+    bgCtx.beginPath();
+    bgCtx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
+    bgCtx.fillStyle = pColor.replace('rgb', 'rgba').replace(')', `,${p.alpha})`);
+    bgCtx.fill();
+  }
+
+  // Ripples
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const rp = ripples[i];
+    rp.r += 0.8;
+    rp.alpha -= 0.003;
+    if (rp.alpha <= 0) { ripples.splice(i, 1); continue; }
+
+    bgCtx.beginPath();
+    bgCtx.arc(rp.x, rp.y, rp.r, 0, 2 * Math.PI);
+    bgCtx.strokeStyle = pColor.replace('rgb', 'rgba').replace(')', `,${rp.alpha})`);
+    bgCtx.lineWidth = 1.5;
+    bgCtx.stroke();
+  }
+
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+/* ════════════════════════════════════════════════════
+   6. Timer logic
+══════════════════════════════════════════════════════ */
+function formatTime(s) {
+  const m = String(Math.floor(s / 60)).padStart(2, '0');
+  const sc = String(s % 60).padStart(2, '0');
+  return `${m}:${sc}`;
+}
+
+function updateUI() {
+  timeLabel.textContent = formatTime(remaining);
+  drawRing();
+  updateDots();
+}
+
+function tick() {
+  if (remaining <= 0) {
+    clearInterval(intervalId);
+    running = false;
+    btnStart.textContent = '開始';
+    if (mode === 'pomodoro') {
+      completedSessions = Math.min(completedSessions + 1, 4);
+      updateDots();
+      // pulse animation on card
+      document.querySelector('.card').animate(
+        [{ boxShadow: '0 0 0 0 rgba(247,201,72,0)' },
+         { boxShadow: '0 0 0 24px rgba(247,201,72,0.3)' },
+         { boxShadow: '0 0 0 0 rgba(247,201,72,0)' }],
+        { duration: 1200, iterations: 2 }
+      );
+    }
+    return;
+  }
+  remaining -= 1;
+  updateUI();
+}
+
+function startTimer() {
+  if (running) {
+    clearInterval(intervalId);
+    running = false;
+    btnStart.textContent = '再開';
+  } else {
+    running = true;
+    btnStart.textContent = '一時停止';
+    intervalId = setInterval(tick, 1000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(intervalId);
+  running = false;
+  btnStart.textContent = '開始';
+  remaining = totalSeconds;
+  updateUI();
+}
+
+function switchMode(newMode) {
+  clearInterval(intervalId);
+  running = false;
+  btnStart.textContent = '開始';
+  mode = newMode;
+  totalSeconds = DURATIONS[mode];
+  remaining = totalSeconds;
+  sessionLabel.textContent = MODE_LABELS[mode];
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  updateUI();
+}
+
+function updateDots() {
+  sessionDots.forEach((dot, i) => {
+    dot.classList.toggle('done', i < completedSessions);
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   7. Event listeners
+══════════════════════════════════════════════════════ */
+btnStart.addEventListener('click', startTimer);
+btnReset.addEventListener('click', resetTimer);
+tabs.forEach(t => t.addEventListener('click', () => switchMode(t.dataset.mode)));
+
+/* Initial draw */
+updateUI();
+</script>
+</body>
+</html>
