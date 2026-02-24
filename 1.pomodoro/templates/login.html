@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン | ポモドーロタイマー</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <main class="container auth">
+        <h1>ポモドーロタイマー</h1>
+        <p>ユーザー名でログインしてください。</p>
+        <form method="post" class="form-stack">
+            <label for="username">ユーザー名</label>
+            <input id="username" name="username" type="text" required>
+            <button type="submit">ログイン</button>
+        </form>
+    </main>
+</body>
+</html>

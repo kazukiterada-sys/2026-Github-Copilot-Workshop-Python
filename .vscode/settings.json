@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "/workspaces/2026-Github-Copilot-Workshop-Python/.venv/bin/python",
+    "python.analysis.extraPaths": [
+        "./1.pomodoro"
+    ]
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}
