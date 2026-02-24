@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ポモドーロタイマー</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1 class="app-title">🍅 ポモドーロタイマー</h1>
+      <button id="theme-toggle" class="theme-btn" aria-label="テーマ切替" title="ダーク/ライト切替">
+        <span class="theme-icon">🌙</span>
+      </button>
+    </header>
+
+    <!-- Mode label -->
+    <div id="mode-label" class="mode-label">集中時間</div>
+
+    <!-- Circular progress timer -->
+    <div class="timer-ring-wrapper">
+      <svg class="timer-ring" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="ring-bg" cx="100" cy="100" r="88" />
+        <circle id="ring-progress" class="ring-progress" cx="100" cy="100" r="88" />
+      </svg>
+      <div class="timer-display">
+        <span id="timer-time" class="timer-time">25:00</span>
+      </div>
+    </div>
+
+    <!-- Cycle dots -->
+    <div class="cycle-section">
+      <p class="cycle-label">ポモドーロサイクル</p>
+      <div id="cycle-dots" class="cycle-dots">
+        <span class="dot" data-index="0"></span>
+        <span class="dot" data-index="1"></span>
+        <span class="dot" data-index="2"></span>
+        <span class="dot" data-index="3"></span>
+      </div>
+      <p id="total-cycles" class="total-cycles">完了: <strong>0</strong> セッション</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="btn-start" class="btn btn-primary">▶ スタート</button>
+      <button id="btn-stop" class="btn btn-secondary" disabled>⏸ 一時停止</button>
+      <button id="btn-reset" class="btn btn-danger">↺ リセット</button>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+</body>
+</html>

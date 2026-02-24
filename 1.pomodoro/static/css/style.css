@@ -1,0 +1,277 @@
+/* =====================================================
+   Pomodoro Timer – style.css
+   Responsive + Dark/Light theme support
+   ===================================================== */
+
+/* ---------- CSS Custom Properties (tokens) ---------- */
+:root {
+  --clr-bg: #f5f5f5;
+  --clr-surface: #ffffff;
+  --clr-text: #222222;
+  --clr-text-muted: #666666;
+  --clr-primary: #e74c3c;
+  --clr-primary-dark: #c0392b;
+  --clr-secondary: #7f8c8d;
+  --clr-secondary-dark: #636e72;
+  --clr-danger: #e67e22;
+  --clr-danger-dark: #ca6f1e;
+  --clr-ring-bg: #e0e0e0;
+  --clr-ring-work: #e74c3c;
+  --clr-ring-short: #27ae60;
+  --clr-ring-long: #2980b9;
+  --clr-dot-empty: #e0e0e0;
+  --clr-dot-done: #e74c3c;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.10);
+  --radius: 1rem;
+  --transition: 0.25s ease;
+}
+
+[data-theme="dark"] {
+  --clr-bg: #1a1a2e;
+  --clr-surface: #16213e;
+  --clr-text: #e0e0e0;
+  --clr-text-muted: #a0a0b0;
+  --clr-ring-bg: #2c2c4a;
+  --clr-dot-empty: #2c2c4a;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.40);
+}
+
+/* ---------- Reset & Base ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+/* ---------- App Container ---------- */
+.app-container {
+  background: var(--clr-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem 2.5rem 2.5rem;
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  transition: background-color var(--transition), box-shadow var(--transition);
+}
+
+/* ---------- Header ---------- */
+.app-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-title {
+  font-size: clamp(1.1rem, 5vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Theme Toggle ---------- */
+.theme-btn {
+  background: var(--clr-ring-bg);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition), transform 0.15s;
+  flex-shrink: 0;
+}
+
+.theme-btn:hover {
+  transform: scale(1.1);
+}
+
+/* ---------- Mode Label ---------- */
+.mode-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  transition: color var(--transition);
+}
+
+/* ---------- Circular Progress Ring ---------- */
+.timer-ring-wrapper {
+  position: relative;
+  width: min(220px, 60vw);
+  height: min(220px, 60vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: var(--clr-ring-bg);
+  stroke-width: 10;
+  transition: stroke var(--transition);
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--clr-ring-work);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 553;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
+}
+
+.timer-display {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.timer-time {
+  font-size: clamp(2.5rem, 12vw, 3.5rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ---------- Cycle Dots ---------- */
+.cycle-section {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cycle-label {
+  font-size: 0.8rem;
+  color: var(--clr-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.cycle-dots {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--clr-dot-empty);
+  transition: background-color 0.4s ease, transform 0.2s ease;
+}
+
+.dot.done {
+  background: var(--clr-dot-done);
+  transform: scale(1.15);
+}
+
+.dot.active {
+  background: var(--clr-ring-work);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.30);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.30); }
+  50%       { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0.15); }
+}
+
+.total-cycles {
+  font-size: 0.82rem;
+  color: var(--clr-text-muted);
+}
+
+/* ---------- Controls ---------- */
+.controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn {
+  flex: 1 1 auto;
+  min-width: 5.5rem;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--clr-primary);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: var(--clr-primary-dark); }
+
+.btn-secondary {
+  background: var(--clr-secondary);
+  color: #fff;
+}
+.btn-secondary:hover:not(:disabled) { background: var(--clr-secondary-dark); }
+
+.btn-danger {
+  background: var(--clr-danger);
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) { background: var(--clr-danger-dark); }
+
+/* ---------- Break mode ring colours ---------- */
+body[data-mode="short_break"] .ring-progress { stroke: var(--clr-ring-short); }
+body[data-mode="long_break"]  .ring-progress { stroke: var(--clr-ring-long);  }
+
+/* ---------- Responsive tweaks ---------- */
+@media (max-width: 360px) {
+  .app-container {
+    padding: 1.5rem 1.25rem 2rem;
+    gap: 1rem;
+  }
+  .controls {
+    flex-direction: column;
+  }
+  .btn {
+    width: 100%;
+  }
+}
